@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Te Amo con Todo Mi Corazón ❤</title>
+  <style>
+    body {
+      background: #000;
+      overflow: hidden;
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    canvas {
+      display: block;
+    }
+    #playBtn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 20px 40px;
+      font-size: 1.8rem;
+      color: #ff69b4;
+      background: rgba(0,0,0,0.6);
+      border: 2px solid #ff69b4;
+      border-radius: 50px;
+      cursor: pointer;
+      z-index: 100;
+      transition: all 0.4s;
+      text-shadow: 0 0 10px #ff1493;
+      box-shadow: 0 0 30px rgba(255,105,180,0.5);
+    }
+    #playBtn:hover {
+      background: #ff69b4;
+      color: #000;
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+    #playBtn.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <button id="playBtn">Reproducir Música ❤</button>
+
+  <!-- Librerías -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.131.3/examples/js/math/MeshSurfaceSampler.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.131.3/examples/js/controls/TrackballControls.js"></script>
+  <script src="https://assets.codepen.io/127738/simplex-noise.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.131.3/examples/js/loaders/OBJLoader.js"></script>
+  <script src="https://unpkg.com/gsap@3/dist/gsap.min.js"></script>
+
+  <script>
+    console.clear();
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.z = 1.5;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setClearColor(0x000022);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new THREE.TrackballControls(camera, renderer.domElement);
+    controls.noPan = true;
+    controls.maxDistance = 3;
+    controls.minDistance = 0.7;
+
+    const group = new THREE.Group();
+    scene.add(group);
+
+    // Fondo de estrellas twinkling
+    const starsCount = 5000;
+    const starsGeo = new THREE.BufferGeometry();
+    const starsPos = new Float32Array(starsCount * 3);
+    const starsSizes = new Float32Array(starsCount);
+
+    for (let i = 0; i < starsCount; i++) {
+      starsPos[i * 3]     = (Math.random() - 0.5) * 2000;
+      starsPos[i * 3 + 1] = (Math.random() - 0.5) * 2000;
+      starsPos[i * 3 + 2] = (Math.random() - 0.5) * 2000;
+      starsSizes[i] = Math.random() * 2.5 + 0.5;
+    }
+
+    starsGeo.setAttribute('position', new THREE.BufferAttribute(starsPos, 3));
+    starsGeo.setAttribute('size', new THREE.BufferAttribute(starsSizes, 1));
+
+    const starsMat = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 1.2,
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    const stars = new THREE.Points(starsGeo, starsMat);
+    scene.add(stars);
+
+    // Pequeños corazones flotantes rosas
+    const heartTexture = new THREE.TextureLoader().load(
+      'https://assets.codepen.io/127738/heart-outline.png'
+    );
+    heartTexture.colorSpace = THREE.SRGBColorSpace;
+
+    const floatingHeartsCount = 120;
+    const heartsGeo = new THREE.BufferGeometry();
+    const heartsPos = new Float32Array(floatingHeartsCount * 3);
+    const heartsVel = new Float32Array(floatingHeartsCount);
+    const heartsPhase = new Float32Array(floatingHeartsCount);
+
+    for (let i = 0; i < floatingHeartsCount; i++) {
+      const radius = 0.8 + Math.random() * 1.2;
+      const theta = Math.random() * Math.PI * 2;
+      const height = (Math.random() - 0.5) * 1.5;
+
+      heartsPos[i * 3]     = Math.cos(theta) * radius;
+      heartsPos[i * 3 + 1] = height;
+      heartsPos[i * 3 + 2] = Math.sin(theta) * radius;
+
+      heartsVel[i]   = 0.0008 + Math.random() * 0.0006;
+      heartsPhase[i] = Math.random() * Math.PI * 2;
+    }
+
+    heartsGeo.setAttribute('position', new THREE.BufferAttribute(heartsPos, 3));
+
+    const heartsMat = new THREE.PointsMaterial({
+      map: heartTexture,
+      color: 0xff69b4,
+      size: 0.12,
+      transparent: true,
+      opacity: 0.75,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true
+    });
+
+    const floatingHearts = new THREE.Points(heartsGeo, heartsMat);
+    group.add(floatingHearts);
+
+    // Texto 3D "TE AMO"
+    const fontLoader = new THREE.FontLoader();
+    fontLoader.load('https://cdn.jsdelivr.net/npm/three@0.131.3/examples/fonts/helvetiker_bold.typeface.json', function(font) {
+      const textGeo = new THREE.TextGeometry('TE AMO', {
+        font: font,
+        size: 0.18,
+        height: 0.01,
+        curveSegments: 8,
+        bevelEnabled: true,
+        bevelThickness: 0.008,
+        bevelSize: 0.004,
+        bevelSegments: 5
+      });
+
+      textGeo.computeBoundingBox();
+      textGeo.center();
+
+      const textMaterial = new THREE.MeshBasicMaterial({ color: 0xff69b4, transparent: true, opacity: 0.95 });
+      const textMesh = new THREE.Mesh(textGeo, textMaterial);
+      textMesh.position.set(0, 0.6, -0.8);
+      scene.add(textMesh);
+
+      gsap.to(textMesh.scale, { x: 1.15, y: 1.15, z: 1.15, duration: 2.2, yoyo: true, repeat: -1, ease: "sine.inOut" });
+      gsap.to(textMesh.position, { y: 0.68, duration: 4, yoyo: true, repeat: -1, ease: "sine.inOut" });
+      gsap.to(textMesh.material, { opacity: 0.6, duration: 3.5, yoyo: true, repeat: -1, ease: "sine.inOut" });
+    });
+
+    // ── Corazón original + púas + latido ──
+    let heart = null;
+    let sampler = null;
+    let originHeart = null;
+
+    new THREE.OBJLoader().load('https://assets.codepen.io/127738/heart_2.obj', obj => {
+      heart = obj.children[0];
+      heart.geometry.rotateX(-Math.PI * 0.5);
+      heart.geometry.scale(0.04, 0.04, 0.04);
+      heart.geometry.translate(0, -0.4, 0);
+      group.add(heart);
+
+      heart.material = new THREE.MeshBasicMaterial({ color: 0xff5555 });
+      originHeart = Array.from(heart.geometry.attributes.position.array);
+      sampler = new THREE.MeshSurfaceSampler(heart).build();
+      init();
+    }, undefined, err => console.error("Error cargando OBJ:", err));
+
+    let positions = [];
+    const geometry = new THREE.BufferGeometry();
+    const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+    const lines = new THREE.LineSegments(geometry, material);
+    group.add(lines);
+
+    const simplex = new SimplexNoise();
+    const pos = new THREE.Vector3();
+
+    class Grass {
+      constructor() {
+        sampler.sample(pos);
+        this.pos = pos.clone();
+        this.scale = Math.random() * 0.01 + 0.001;
+        this.one = null;
+        this.two = null;
+      }
+      update(a) {
+        const noise = simplex.noise4D(this.pos.x * 1.5, this.pos.y * 1.5, this.pos.z * 1.5, a * 0.0005) + 1;
+        this.one = this.pos.clone().multiplyScalar(1.01 + (noise * 0.15 * beat.a));
+        this.two = this.one.clone().add(this.one.clone().setLength(this.scale));
+      }
+    }
+
+    let spikes = [];
+
+    function init() {
+      for (let i = 0; i < 20000; i++) {
+        spikes.push(new Grass());
+      }
+      renderer.setAnimationLoop(render);
+    }
+
+    const beat = { a: 0 };
+    gsap.timeline({ repeat: -1, repeatDelay: 0.3 })
+      .to(beat, { a: 1.2, duration: 0.6, ease: 'power2.in' })
+      .to(beat, { a: 0.0, duration: 0.6, ease: 'power3.out' });
+
+    gsap.to(group.rotation, { y: Math.PI * 2, duration: 12, ease: 'none', repeat: -1 });
+
+    // ── Audio ──
+    const audio = new Audio('1.mp3');  // ← Cambia aquí si tu archivo tiene otro nombre
+    audio.loop = true;  // Repetir la canción indefinidamente
+    audio.volume = 0.4; // Volumen suave para no tapar el ambiente
+
+    const playBtn = document.getElementById('playBtn');
+    playBtn.addEventListener('click', () => {
+      audio.play().then(() => {
+        playBtn.classList.add('hidden');
+      }).catch(err => {
+        console.log("Error reproduciendo audio:", err);
+        alert("Toca la pantalla o haz clic para reproducir la música (política de autoplay del navegador)");
+      });
+    });
+
+    // Intento de autoplay (puede fallar, por eso el botón)
+    audio.play().catch(() => {
+      // Silencioso si falla autoplay
+    });
+
+    function render(a) {
+      positions = [];
+      spikes.forEach(g => {
+        g.update(a);
+        positions.push(g.one.x, g.one.y, g.one.z);
+        positions.push(g.two.x, g.two.y, g.two.z);
+      });
+      geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+
+      if (heart && originHeart) {
+        const vs = heart.geometry.attributes.position.array;
+        for (let i = 0; i < vs.length; i += 3) {
+          const v = new THREE.Vector3(originHeart[i], originHeart[i + 1], originHeart[i + 2]);
+          const noise = simplex.noise4D(originHeart[i] * 1.5, originHeart[i + 1] * 1.5, originHeart[i + 2] * 1.5, a * 0.0005) + 1;
+          v.multiplyScalar(1 + (noise * 0.15 * beat.a));
+          vs[i]     = v.x;
+          vs[i + 1] = v.y;
+          vs[i + 2] = v.z;
+        }
+        heart.geometry.attributes.position.needsUpdate = true;
+      }
+
+      // Animación estrellas
+      const time = a * 0.0003;
+      const sizes = stars.geometry.attributes.size.array;
+      for (let i = 0; i < starsCount; i++) {
+        sizes[i] = 0.8 + Math.sin(time + i * 0.7) * 1.2;
+      }
+      stars.geometry.attributes.size.needsUpdate = true;
+
+      // Animación corazones flotantes
+      const hPos = floatingHearts.geometry.attributes.position.array;
+      for (let i = 0; i < floatingHeartsCount; i++) {
+        hPos[i * 3 + 1] += heartsVel[i];
+        if (hPos[i * 3 + 1] > 1.8) hPos[i * 3 + 1] = -1.8;
+
+        hPos[i * 3]     += Math.sin(a * 0.001 + heartsPhase[i]) * 0.0008;
+        hPos[i * 3 + 2] += Math.cos(a * 0.001 + heartsPhase[i]) * 0.0008;
+      }
+      floatingHearts.geometry.attributes.position.needsUpdate = true;
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+
+</body>
+</html>
